@@ -1,0 +1,77 @@
+{
+  "profile": {
+    "name": "Rayleigh Xu",
+    "title": "@freelanxur",
+    "tagline": "Data engineer by trade, freelancer by choice",
+    "status": "🟢 Available for freelancing projects",
+    // "status": "🔴 Currently unavailable",
+    "avatar": "images/2842-stressedpsyduck.png",
+    "page_title": "freelanxur",
+    "page_icon": "images/2842-stressedpsyduck.png",
+    "footer": "© 2026 - Developed by Rayleigh Xu"
+  },
+
+  "metrics": [
+    { "value": "5+",   "label": "Years Experience" },
+    { "value": "30+",  "label": "Projects Completed" },
+    { "value": "15+",  "label": "Happy Clients" },
+    { "value": "10K+", "label": "Lines of Code" }
+  ],
+
+  "skills": {
+    "Python": 90,
+    "SQL": 90,
+    "Excel": 90,
+    "Git": 85,
+    "AI": 70,
+    "CI/CD + Cloud": 70,
+    "and more...": 50
+  },
+
+  "projects": [
+    {
+      "title": "US Political Data Merge",
+      "description": "Python-based ETL project for merging and deduplicating over 1 million records from multiple Excel/CSV sources using deterministic and fuzzy matching, with company name standardization and US political voter data integration.",
+      "tags": ["Python", "Splink", "Excel"],
+      "link": "https://github.com/rayleighxu7/us-political-data-merge-robv"
+    },
+    {
+      "title": "Vanguard - Core Metric Dashboard",
+      "description": "A real-time analytics dashboard powered by Fivetran, BigQuery, and Hex.Tech, refreshing hourly to track key business metrics — including GMV, Revenue, and Customer growth — with both cumulative and time-series views.",
+      "tags": ["Python", "SQL/BigQuery", "Fivetran", "Hex.Tech"],
+      "link": ""
+    },
+    {
+      "title": "Portfolio Website",
+      "description": "This very site you are currently on is a modern, content-driven portfolio built with Streamlit and Python, featuring dynamic theming and all content managed via a single JSON config file. Deployed on AWS.",
+      "tags": ["Python", "Streamlit", "AWS", "GitHub"],
+      "link": "https://github.com/rayleighxu7/website"
+    }
+  ],
+
+  "experience": [
+    {
+      "date": "Aug 2023 - Present",
+      "title": "Data Engineer @ Caruso",
+      "description": ""
+    },
+    {
+      "date": "Nov 2021 - Aug 2023",
+      "title": "Data Intelligence Analyst @ Spark New Zealand",
+      "description": ""
+    },
+    {
+      "date": "Jun 2021 - Nov 2021",
+      "title": "Data Analyst @ KPMG New Zealand",
+      "description": ""
+    }
+  ],
+
+  "contact": {
+    "email": "rayleighxu7@live.com",
+    "location": "Auckland, New Zealand",
+    "github": "github.com/rayleighxu7",
+    "linkedin": "linkedin.com/in/rayleighxu7"
+  }
+}
+
