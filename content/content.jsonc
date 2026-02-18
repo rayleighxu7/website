@@ -30,10 +30,10 @@
 
   "projects": [
     {
-      "title": "🌐︎ Portfolio Website",
+      "title": "🌐︎ Website",
       "description": "This very site you are currently on is a modern, content-driven portfolio built with Streamlit and Python, featuring dynamic theming and all content managed via a single JSON config file. Deployed on AWS.",
       "tags": ["Python", "Streamlit", "AWS", "GitHub"],
-      "icon": "images/2842-stressedpsyduck.png",
+      "icon": "",
       "link": "https://github.com/rayleighxu7/website"
     },
     {
@@ -44,7 +44,7 @@
       "link": "https://github.com/rayleighxu7/us-political-data-merge-robv"
     },
     {
-      "title": "📊︎ Vanguard - Core Metric Dashboard",
+      "title": "📊︎ Vanguard - Core Metrics Dashboard",
       "description": "A real-time analytics dashboard powered by Fivetran, BigQuery, and Hex.Tech, refreshing hourly to track key business metrics - including GMV, Revenue, and Customer growth - with both cumulative and time-series views.",
       "tags": ["Python", "SQL/BigQuery", "Fivetran", "Hex.Tech"],
       "icon": "",
@@ -57,31 +57,64 @@
       "date": "November 2025 - Present",
       "title": "Data Consultant @ freelanxur",
       "description": "Started my own freelancing business as a data engineer & consultant.",
-      "icon": ""
+      "icon": "",
+      "cv_bullets": [
+        "Started my own freelancing business as a data engineer & consultant."
+      ]
     },
     {
-      "date": "Aug 2023 - Present",
-      "title": "Data Engineer @ Caruso",
+      "date": "Dec 2024 - Present",
+      "title": "Data Engineer @ Caruso Software Limited",
       "description": "",
-      "icon": ""
+      "icon": "",
+      "cv_bullets": [
+        "Led the migration and onboarding of over $30B in assets onto Caruso's platform.",
+        "Designed and established data team processes to enhance collaboration and efficiency.",
+        "Developed internal tooling and packages to streamline client implementations, ongoing services, and support workflows.",
+        "Built complex applications to address product gaps, including AU/NZ tax filing automation, bulk payment converters, and scheduled reporting systems.",
+        "All tooling and applications maintained and deployed through Terraform in AWS infrastructure.",
+        "Collaborated with software engineers to design an optimized SQL data model supporting efficient GraphQL queries."
+      ]
+    },
+    {
+      "date": "Aug 2023 - Dec 2024",
+      "title": "Data Specialist @ Caruso Software Limited",
+      "description": "",
+      "icon": "",
+      "cv_bullets": [
+        "Responsible for transforming and migrating client legacy data.",
+        "Assisted in managing and servicing clients with CRM and Unit Registry data updates post go-live.",
+        "Developed custom scripts to assist clients in reporting and analysis."
+      ]
     },
     {
       "date": "Nov 2021 - Aug 2023",
       "title": "Data Intelligence Analyst @ Spark New Zealand",
       "description": "",
-      "icon": ""
+      "icon": "",
+      "cv_bullets": [
+        "Developed and maintained a data-driven unified marketing platform written in Python.",
+        "Implemented automation of testing and operations using in-house Azure DevOps services.",
+        "Built and enhanced interactive dashboards using Snowflake and PowerBI.",
+        "Conducted analysis on existing campaigns to measure performance and make adjustments.",
+        "Assisted in interviewing, hiring and onboarding interns and graduates."
+      ]
     },
     {
       "date": "Jun 2021 - Nov 2021",
-      "title": "Data Analyst @ KPMG New Zealand",
+      "title": "Data Analyst Intern @ KPMG New Zealand",
       "description": "",
-      "icon": ""
+      "icon": "",
+      "cv_bullets": [
+        "Worked in a semi-agile team offering remediation services for the Holidays Act Legislation.",
+        "Data wrangling and algorithm building using R.",
+        "Conducted QA and analysis on client datasets using Excel."
+      ]
     }
   ],
 
   "contact": {
     "email": "rayleighxu7@live.com",
-    "location": "Auckland, New Zealand",
     "github": "github.com/rayleighxu7",
     "linkedin": "linkedin.com/in/rayleighxu7"
   }

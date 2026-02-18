@@ -1,10 +1,11 @@
 import base64
+import hashlib
 import json
 
 import streamlit as st
 from pathlib import Path
 
-# from export_pdf import build_portfolio_pdf
+from export_pdf import build_cv_pdf
 
 # ── Load external content ────────────────────────────────────────────────────
 import re
@@ -244,6 +245,28 @@ st.markdown(
         -webkit-text-fill-color: transparent;
         text-decoration: none;
         letter-spacing: -0.5px;
+    }}
+    /* Brand button styled as logo */
+    button[kind="secondary"][data-testid="stBaseButton-secondary"]:has(+ div),
+    div[data-testid="stHorizontalBlock"] > div:first-child button {{
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        background: {T['brand_grad']} !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        letter-spacing: -0.5px !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0.45rem 1rem !important;
+        cursor: pointer !important;
+        text-align: left !important;
+    }}
+    div[data-testid="stHorizontalBlock"] > div:first-child button:hover {{
+        background: {T['brand_grad']} !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        border: none !important;
+        opacity: 0.8;
     }}
     .nav-links {{
         display: flex;
@@ -643,7 +666,7 @@ st.markdown(
 #  HEADER NAVIGATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-NAV_ITEMS = ["Home", "Projects", "CV", "Contact"]
+NAV_ITEMS = ["Projects", "CV", "Contact"]
 
 if "page" not in st.session_state:
     st.session_state.page = "Home"
@@ -657,10 +680,9 @@ def _nav_click(item: str):
 nav_cols = st.columns([4] + [0.8] * len(NAV_ITEMS) + [0.4], gap="small")
 
 with nav_cols[0]:
-    st.markdown(
-        f'<div class="nav-brand">{PROFILE["page_title"]}</div>',
-        unsafe_allow_html=True,
-    )
+    if st.button(PROFILE["page_title"], key="nav_brand"):
+        st.session_state.page = "Home"
+        st.rerun()
 
 for i, item in enumerate(NAV_ITEMS, start=1):
     with nav_cols[i]:
@@ -743,7 +765,7 @@ def render_home():
     st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
 
     # ── About ───────────────────────────────────────────────────────────────
-    left, right = st.columns([3, 2])
+    left, right = st.columns([3, 2], gap="large")
 
     with left:
         st.markdown(
@@ -777,6 +799,37 @@ def render_home():
         )
 
 
+# Preset hues for known tags (hue value on the HSL wheel)
+_TAG_HUES: dict[str, int] = {
+    "Python":      210,   # blue
+    "Streamlit":   0,     # red
+    "AWS":         30,    # orange
+    "GitHub":      270,   # purple
+    "Excel":       140,   # green
+    "SQL/BigQuery": 200,  # steel blue
+    "SQL":         200,   # steel blue
+    "Fivetran":    180,   # teal
+}
+
+
+def _tag_color(tag: str) -> tuple[str, str, str]:
+    """Return (bg, text, border) CSS colours for a tag.
+    Uses a preset hue if known, otherwise falls back to a hash-based hue."""
+    if tag in _TAG_HUES:
+        hue = _TAG_HUES[tag]
+    else:
+        hue = int(hashlib.md5(tag.encode()).hexdigest()[:8], 16) % 360
+    if is_dark:
+        bg = f"hsla({hue}, 60%, 50%, 0.12)"
+        text = f"hsl({hue}, 70%, 70%)"
+        border = f"hsla({hue}, 60%, 50%, 0.25)"
+    else:
+        bg = f"hsla({hue}, 55%, 45%, 0.1)"
+        text = f"hsl({hue}, 60%, 35%)"
+        border = f"hsla({hue}, 55%, 45%, 0.25)"
+    return bg, text, border
+
+
 def render_projects():
     """Project showcase grid."""
 
@@ -790,10 +843,10 @@ def render_projects():
     for row in rows:
         cols = st.columns(2)
         for col, proj in zip(cols, row):
-            tags_html = "".join(
-                f'<span class="tag">{tag}</span>'
-                for tag in proj["tags"]
-            )
+            tags_html = ""
+            for tag in proj["tags"]:
+                bg, color, border = _tag_color(tag)
+                tags_html += f'<span class="tag" style="background:{bg};color:{color};border-color:{border};">{tag}</span>'
             with col:
                 link = proj.get("link", "").strip()
                 card_inner = f"""
@@ -827,10 +880,29 @@ def render_experience():
             <div class="timeline-item">
                 <div class="timeline-date">{exp['date']}</div>
                 <div class="timeline-title">{exp['title']}</div>
-                <div class="timeline-description">{exp['description']}</div>
             </div>
             """,
             unsafe_allow_html=True,
+        )
+
+    st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
+
+    pdf_bytes = build_cv_pdf(
+        profile=PROFILE,
+        about=ABOUT,
+        skills=SKILLS,
+        experience=EXPERIENCE,
+        projects=PROJECTS,
+        contact=CONTACT,
+    )
+    _, center, _ = st.columns([1, 2, 1])
+    with center:
+        st.download_button(
+            label="Download CV as PDF",
+            data=pdf_bytes,
+            file_name=f"{PROFILE['name'].replace(' ', '_')}_CV.pdf",
+            mime="application/pdf",
+            use_container_width=True,
         )
 
 
@@ -843,47 +915,23 @@ def render_contact():
         unsafe_allow_html=True,
     )
 
-    c1, c2, c3, c4 = st.columns(4)
     items = [
-        ("📧", "Email", CONTACT["email"]),
-        ("📍", "Location", CONTACT["location"]),
-        (f'<img src="data:image/png;base64,{_gh_dark_b64 if is_dark else _gh_light_b64}" style="width:2rem;height:2rem;">', "GitHub", CONTACT["github"]),
-        (f'<img src="data:image/png;base64,{_li_b64}" style="width:2rem;height:2rem;">', "LinkedIn", CONTACT["linkedin"]),
+        ("📧", "Email", CONTACT["email"], f"mailto:{CONTACT['email']}"),
+        # ("📍", "Location", CONTACT["location"], ""),
+        (f'<img src="data:image/png;base64,{_gh_dark_b64 if is_dark else _gh_light_b64}" style="width:2rem;height:2rem;">', "GitHub", CONTACT["github"], f"https://{CONTACT['github']}"),
+        (f'<img src="data:image/png;base64,{_li_b64}" style="width:2rem;height:2rem;">', "LinkedIn", CONTACT["linkedin"], f"https://{CONTACT['linkedin']}"),
     ]
-    for col, (icon, label, value) in zip([c1, c2, c3, c4], items):
+    cols = st.columns(len(items))
+    for col, (icon, label, value, link) in zip(cols, items):
         with col:
-            st.markdown(
-                f"""
+            card_html = f"""
                 <div class="contact-card">
                     <div class="contact-icon">{icon}</div>
                     <div class="contact-label">{label}</div>
-                    <div class="contact-value">{value}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    st.markdown('<hr class="section-divider">', unsafe_allow_html=True)
-
-    st.markdown(
-        '<div class="section-header">Send a Message</div>',
-        unsafe_allow_html=True,
-    )
-
-    with st.form("contact_form", clear_on_submit=True):
-        col_a, col_b = st.columns(2)
-        with col_a:
-            name = st.text_input("Name")
-        with col_b:
-            email = st.text_input("Email")
-        message = st.text_area("Message", height=150)
-        submitted = st.form_submit_button("Send Message ✉️", use_container_width=True)
-        if submitted:
-            if name and email and message:
-                st.success("Thanks for reaching out! I'll get back to you soon. 🎉")
-            else:
-                st.warning("Please fill in all fields.")
-
+                </div>"""
+            if link:
+                card_html = f'<a href="{link}" target="_blank" style="text-decoration:none;color:inherit;">{card_html}</a>'
+            st.markdown(card_html, unsafe_allow_html=True)
 
 # ── Router ──────────────────────────────────────────────────────────────────
 

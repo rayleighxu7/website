@@ -1,11 +1,12 @@
-"""Generate a nicely formatted PDF portfolio/resume from content data."""
+"""Generate a compact one-page CV-style PDF from portfolio content data."""
 
 import io
 import re
 import unicodedata
 from fpdf import FPDF
 
-# Common Unicode → ASCII replacements for characters outside Latin-1
+# ── Text sanitiser (Helvetica = Latin-1 only) ────────────────────────────────
+
 _UNICODE_REPLACEMENTS = {
     "\u2018": "'",   # left single quote
     "\u2019": "'",   # right single quote
@@ -20,257 +21,371 @@ _UNICODE_REPLACEMENTS = {
     "\uFEFF": "",    # BOM / zero-width no-break space
 }
 
+_EMOJI_RE = re.compile(
+    "["
+    "\U0000FE00-\U0000FE0F"
+    "\U00002702-\U000027B0"
+    "\U0001F600-\U0001F64F"
+    "\U0001F300-\U0001F5FF"
+    "\U0001F680-\U0001F6FF"
+    "\U0001F700-\U0001F77F"
+    "\U0001F780-\U0001F7FF"
+    "\U0001F800-\U0001F8FF"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FA6F"
+    "\U0001FA70-\U0001FAFF"
+    "\U00002600-\U000026FF"
+    "\U0000203C-\U00003299"
+    "]+",
+    flags=re.UNICODE,
+)
 
-def _sanitize(text: str) -> str:
-    """Make *text* safe for Helvetica (Latin-1) by stripping emoji and
-    replacing smart punctuation with ASCII equivalents."""
 
-    # 1. Replace known smart-punctuation / special chars
+def _s(text: str) -> str:
+    """Sanitise *text* for Helvetica (Latin-1)."""
     for orig, repl in _UNICODE_REPLACEMENTS.items():
         text = text.replace(orig, repl)
-
-    # 2. Strip emoji & miscellaneous symbols
-    emoji_pattern = re.compile(
-        "["
-        "\U0000FE00-\U0000FE0F"  # variation selectors
-        "\U00002702-\U000027B0"  # dingbats
-        "\U0001F600-\U0001F64F"  # emoticons
-        "\U0001F300-\U0001F5FF"  # misc symbols & pictographs
-        "\U0001F680-\U0001F6FF"  # transport & map
-        "\U0001F700-\U0001F77F"  # alchemical
-        "\U0001F780-\U0001F7FF"  # geometric shapes ext
-        "\U0001F800-\U0001F8FF"  # supplemental arrows-C
-        "\U0001F900-\U0001F9FF"  # supplemental symbols
-        "\U0001FA00-\U0001FA6F"  # chess symbols
-        "\U0001FA70-\U0001FAFF"  # symbols & pictographs ext-A
-        "\U00002600-\U000026FF"  # misc symbols
-        "\U0000203C-\U00003299"  # misc technical / enclosed
-        "]+",
-        flags=re.UNICODE,
-    )
-    text = emoji_pattern.sub("", text)
-
-    # 3. Last-resort: decompose any remaining non-Latin-1 chars to ASCII
-    #    (e.g. accented chars → base letter) and drop anything still outside range
+    text = _EMOJI_RE.sub("", text)
     cleaned = []
     for ch in text:
         try:
             ch.encode("latin-1")
             cleaned.append(ch)
         except UnicodeEncodeError:
-            # Try unicode decomposition (é → e, ñ → n, etc.)
             decomposed = unicodedata.normalize("NFD", ch)
             ascii_chars = [c for c in decomposed if ord(c) < 256]
             cleaned.append("".join(ascii_chars) if ascii_chars else "")
     return "".join(cleaned).strip()
 
 
-class PortfolioPDF(FPDF):
-    """Custom PDF with header/footer styling."""
+# ── Colours ───────────────────────────────────────────────────────────────────
 
-    ACCENT = (79, 140, 255)     # blue accent colour
-    DARK = (30, 30, 30)
-    MUTED = (120, 120, 120)
-    LIGHT_BG = (245, 247, 250)
-    WHITE = (255, 255, 255)
+_ACCENT    = (14, 17, 23)      # dark bg (#0E1117)
+_HEADING   = (245, 197, 66)    # Psyduck gold (#F5C542)
+_GOLD_MID  = (232, 163, 23)    # darker gold (#E8A317)
+_GOLD_SOFT = (201, 184, 122)   # muted gold (#C9B87A)
+_DARK      = (40, 40, 45)
+_BODY      = (70, 70, 75)
+_MUTED     = (120, 120, 125)
+_CARD_BG   = (252, 250, 245)   # very warm off-white card
+_LIGHT_BG  = (255, 248, 225)   # warm gold tint for bars
+_WHITE     = (255, 255, 255)
+_RULE_SOFT = (230, 225, 210)   # subtle warm separator
+
+# Page dimensions
+_PW = 210  # A4 width
+_LM = 12   # left margin (tighter)
+_RM = 12   # right margin (tighter)
+_CW = _PW - _LM - _RM  # content width
+
+
+# ── PDF class ─────────────────────────────────────────────────────────────────
+
+class CVPDF(FPDF):
+    """A clean, compact one-page CV layout."""
+
+    _name: str = ""
+    _title: str = ""
 
     def header(self):
-        pass  # drawn manually on first page
+        pass  # single page – no repeat header needed
 
     def footer(self):
-        self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
-        self.set_text_color(*self.MUTED)
-        self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align="C")
+        pass  # single page – skip footer to save space
 
-    # ── helper drawers ──────────────────────────────────────────────────────
+    # ── Drawing helpers ──────────────────────────────────────────────────────
 
-    def _section_title(self, title: str):
-        """Draw a coloured section heading with an underline."""
-        self.ln(6)
-        self.set_font("Helvetica", "B", 14)
-        self.set_text_color(*self.ACCENT)
-        self.cell(0, 10, title, new_x="LMARGIN", new_y="NEXT")
-        # accent underline
-        x = self.get_x()
-        y = self.get_y()
-        self.set_draw_color(*self.ACCENT)
-        self.set_line_width(0.6)
-        self.line(x, y, x + 60, y)
-        self.ln(4)
-
-    def _label_value(self, label: str, value: str):
-        self.set_font("Helvetica", "B", 10)
-        self.set_text_color(*self.DARK)
-        self.cell(40, 6, label + ":", new_x="END")
-        self.set_font("Helvetica", "", 10)
-        self.set_text_color(*self.MUTED)
-        self.multi_cell(0, 6, value, new_x="LMARGIN", new_y="NEXT")
-
-    def _tag_badge(self, text: str):
-        """Draw a small rounded-rect tag inline."""
-        self.set_font("Helvetica", "", 8)
-        w = self.get_string_width(text) + 6
-        x = self.get_x()
-        y = self.get_y()
-        self.set_fill_color(*self.LIGHT_BG)
-        self.set_draw_color(200, 200, 200)
-        self.rect(x, y, w, 5.5, style="DF", round_corners=True, corner_radius=1.5)
-        self.set_text_color(*self.ACCENT)
-        self.set_xy(x + 3, y + 0.5)
-        self.cell(w - 6, 4.5, text)
-        self.set_xy(x + w + 2, y)
-
-    # ── skill bar ───────────────────────────────────────────────────────────
-
-    def _skill_bar(self, skill: str, pct: int):
-        bar_w = 100
-        bar_h = 4
-        x_start = self.get_x() + 45
+    def section_heading(self, title: str):
+        """Compact gold section heading with thin rule."""
+        self.ln(3)
         y = self.get_y()
 
-        # label
-        self.set_font("Helvetica", "", 10)
-        self.set_text_color(*self.DARK)
-        self.cell(45, 6, skill)
+        # Small gold dot
+        self.set_fill_color(*_HEADING)
+        self.ellipse(self.l_margin, y + 1.2, 1.8, 1.8, style="F")
 
-        # background track
-        self.set_fill_color(*self.LIGHT_BG)
-        self.rect(x_start, y + 1, bar_w, bar_h, style="F", round_corners=True, corner_radius=2)
+        # Title text
+        self.set_xy(self.l_margin + 3.5, y)
+        self.set_font("Helvetica", "B", 9)
+        self.set_text_color(*_DARK)
+        self.cell(0, 4.5, title.upper(), new_x="LMARGIN", new_y="NEXT")
 
-        # filled portion
-        self.set_fill_color(*self.ACCENT)
-        self.rect(x_start, y + 1, bar_w * pct / 100, bar_h, style="F", round_corners=True, corner_radius=2)
+        # Thin rule
+        y2 = self.get_y() + 0.2
+        self.set_draw_color(*_RULE_SOFT)
+        self.set_line_width(0.2)
+        self.line(self.l_margin, y2, _PW - self.r_margin, y2)
+        self.ln(1.5)
 
-        # percentage text
-        self.set_font("Helvetica", "", 8)
-        self.set_text_color(*self.MUTED)
-        self.set_xy(x_start + bar_w + 3, y)
-        self.cell(15, 6, f"{pct}%")
-        self.ln(7)
+    def _card_rect(self, x, y, w, h):
+        """Draw a subtle card background with rounded corners and border."""
+        self.set_fill_color(*_CARD_BG)
+        self.set_draw_color(*_RULE_SOFT)
+        self.set_line_width(0.25)
+        self.rect(x, y, w, h, style="DF", round_corners=True, corner_radius=2)
 
 
-def build_portfolio_pdf(
+# ── Public builder ────────────────────────────────────────────────────────────
+
+def build_cv_pdf(
     profile: dict,
-    metrics: list,
     about: str,
     skills: dict,
-    projects: list,
     experience: list,
+    projects: list,
     contact: dict,
 ) -> bytes:
-    """Return the raw bytes of a styled PDF portfolio document."""
+    """Return the raw bytes of a compact one-page CV PDF."""
 
-    pdf = PortfolioPDF(orientation="P", unit="mm", format="A4")
-    pdf.alias_nb_pages()
-    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf = CVPDF(orientation="P", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=False)  # we control layout manually
+    pdf.set_margins(_LM, 10, _RM)
+    pdf._name = _s(profile["name"])
+    pdf._title = _s(profile["title"])
     pdf.add_page()
 
-    # ── Hero / title block ──────────────────────────────────────────────────
-    pdf.set_fill_color(*PortfolioPDF.ACCENT)
-    pdf.rect(0, 0, 210, 52, style="F")
+    # ── Header banner ────────────────────────────────────────────────────────
+    banner_h = 28
+    pdf.set_fill_color(*_ACCENT)
+    pdf.rect(0, 0, _PW, banner_h, style="F")
 
-    pdf.set_xy(15, 10)
-    pdf.set_font("Helvetica", "B", 24)
-    pdf.set_text_color(*PortfolioPDF.WHITE)
-    pdf.cell(0, 10, _sanitize(profile["name"]), new_x="LMARGIN", new_y="NEXT")
+    # Thin gold accent line at bottom of banner
+    pdf.set_fill_color(*_HEADING)
+    pdf.rect(0, banner_h - 0.8, _PW, 0.8, style="F")
 
-    pdf.set_x(15)
-    pdf.set_font("Helvetica", "", 12)
-    pdf.cell(0, 7, _sanitize(profile["title"]), new_x="LMARGIN", new_y="NEXT")
+    # Name – centered
+    pdf.set_xy(_LM, 6)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_text_color(*_HEADING)
+    pdf.cell(0, 8, _s(profile["name"]), align="C", new_x="LMARGIN", new_y="NEXT")
 
-    pdf.set_x(15)
-    pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(0, 7, _sanitize(profile["tagline"]), new_x="LMARGIN", new_y="NEXT")
+    # Contact line – centered with hyperlinks
+    pdf.set_font("Helvetica", "", 7.5)
+    sep_color = (156, 163, 175)
+    link_color = (201, 184, 122)
 
-    pdf.set_x(15)
-    pdf.set_font("Helvetica", "", 9)
-    pdf.cell(0, 6, _sanitize(profile["status"]), new_x="LMARGIN", new_y="NEXT")
+    contact_items = [
+        (contact.get("email", ""), contact.get("email", ""), f"mailto:{contact.get('email', '')}"),
+        ("freelanxur", "freelanxur", "https://freelanxur.com"),
+        ("GitHub", contact.get("github", ""), f"https://{contact.get('github', '')}"),
+        ("LinkedIn", contact.get("linkedin", ""), f"https://{contact.get('linkedin', '')}"),
+    ]
 
-    pdf.ln(8)
+    # Calculate total width to center
+    total_w = 0
+    sep_text = "  |  "
+    visible = [(l, d, u) for l, d, u in contact_items if d]
+    for i, (label, display, url) in enumerate(visible):
+        if i > 0:
+            pdf.set_font("Helvetica", "", 7.5)
+            total_w += pdf.get_string_width(sep_text)
+        pdf.set_font("Helvetica", "U", 7.5)
+        total_w += pdf.get_string_width(_s(label))
 
-    # ── Metrics row ─────────────────────────────────────────────────────────
-    col_w = (210 - 30) / len(metrics)
-    y_top = pdf.get_y()
-    for i, m in enumerate(metrics):
-        x = 15 + i * col_w
-        # card background
-        pdf.set_fill_color(*PortfolioPDF.LIGHT_BG)
-        pdf.rect(x, y_top, col_w - 4, 16, style="F", round_corners=True, corner_radius=2)
-        # value
-        pdf.set_xy(x + 2, y_top + 2)
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.set_text_color(*PortfolioPDF.ACCENT)
-        pdf.cell(col_w - 8, 6, _sanitize(str(m["value"])), align="C")
-        # label
-        pdf.set_xy(x + 2, y_top + 9)
-        pdf.set_font("Helvetica", "", 8)
-        pdf.set_text_color(*PortfolioPDF.MUTED)
-        pdf.cell(col_w - 8, 5, _sanitize(m["label"]), align="C")
-    pdf.set_y(y_top + 20)
+    start_x = (_PW - total_w) / 2
+    pdf.set_xy(start_x, pdf.get_y())
 
-    # ── About ───────────────────────────────────────────────────────────────
-    pdf._section_title("About")
-    pdf.set_font("Helvetica", "", 10)
-    pdf.set_text_color(*PortfolioPDF.DARK)
-    pdf.multi_cell(0, 5.5, _sanitize(about), new_x="LMARGIN", new_y="NEXT")
+    for i, (label, display, url) in enumerate(visible):
+        if i > 0:
+            pdf.set_text_color(*sep_color)
+            pdf.set_font("Helvetica", "", 7.5)
+            pdf.cell(pdf.get_string_width(sep_text), 4.5, sep_text)
+        pdf.set_text_color(*link_color)
+        pdf.set_font("Helvetica", "U", 7.5)
+        pdf.cell(pdf.get_string_width(_s(label)), 4.5, _s(label), link=url)
 
-    # ── Skills ──────────────────────────────────────────────────────────────
-    pdf._section_title("Skills")
-    for skill, pct in skills.items():
-        pdf._skill_bar(skill, pct)
+    pdf.set_y(banner_h + 1.5)
 
-    # ── Experience ──────────────────────────────────────────────────────────
-    pdf._section_title("Experience")
+    # ── About Me ─────────────────────────────────────────────────────────────
+    pdf.section_heading("About Me")
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(*_BODY)
+    pdf.set_x(_LM)
+    pdf.multi_cell(_CW, 3.5, _s(about), new_x="LMARGIN", new_y="NEXT")
+
+    # ── Experience ───────────────────────────────────────────────────────────
+    pdf.section_heading("Experience")
+
+    inner_x = _LM + 5
+    bullet_x = inner_x + 1
+    bullet_w = _CW - 8
+
     for exp in experience:
-        pdf.set_font("Helvetica", "B", 10)
-        pdf.set_text_color(*PortfolioPDF.DARK)
-        pdf.cell(0, 6, _sanitize(exp["title"]), new_x="LMARGIN", new_y="NEXT")
+        bullets = exp.get("cv_bullets", [])
+        title_text = _s(exp["title"])
+        date_text = _s(exp.get("date", ""))
 
-        pdf.set_font("Helvetica", "I", 9)
-        pdf.set_text_color(*PortfolioPDF.ACCENT)
-        pdf.cell(0, 5, _sanitize(exp["date"]), new_x="LMARGIN", new_y="NEXT")
+        # Pre-calculate card height
+        title_h = 4.5
+        bullet_total = 0
+        pdf.set_font("Helvetica", "", 7.5)
+        for bullet in bullets:
+            lines = len(pdf.multi_cell(
+                bullet_w, 3.3, _s(f"- {bullet}"),
+                dry_run=True, output="LINES",
+            ))
+            bullet_total += lines * 3.3
 
-        if exp.get("description"):
-            pdf.set_font("Helvetica", "", 9)
-            pdf.set_text_color(*PortfolioPDF.MUTED)
-            pdf.multi_cell(0, 5, _sanitize(exp["description"]), new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(3)
+        card_h = 2 + title_h  # top padding + title
+        if bullets:
+            card_h += bullet_total + 0.5
+        card_h += 1  # bottom padding
 
-    # ── Projects ────────────────────────────────────────────────────────────
-    pdf._section_title("Projects")
+        card_y = pdf.get_y()
+        pdf._card_rect(_LM, card_y, _CW, card_h)
+
+        # Gold left accent strip
+        pdf.set_fill_color(*_HEADING)
+        pdf.rect(_LM, card_y, 1, card_h, style="F",
+                 round_corners=True, corner_radius=0.5)
+
+        # Title + date row
+        pdf.set_xy(inner_x, card_y + 1)
+        pdf.set_font("Helvetica", "B", 8.5)
+        pdf.set_text_color(*_DARK)
+        pdf.cell(pdf.get_string_width(title_text) + 1, title_h, title_text)
+
+        if date_text:
+            pdf.set_font("Helvetica", "", 7.5)
+            pdf.set_text_color(*_MUTED)
+            date_w = pdf.get_string_width(date_text)
+            pdf.set_xy(_LM + _CW - 5 - date_w, card_y + 1)
+            pdf.cell(date_w, title_h, date_text)
+
+        # Bullet points
+        if bullets:
+            pdf.set_xy(bullet_x, card_y + 1 + title_h)
+            pdf.set_font("Helvetica", "", 7.5)
+            pdf.set_text_color(*_BODY)
+            for bullet in bullets:
+                pdf.set_x(bullet_x)
+                pdf.multi_cell(
+                    bullet_w, 3.3, _s(f"- {bullet}"),
+                    new_x="LMARGIN", new_y="NEXT",
+                )
+
+        pdf.set_y(card_y + card_h + 1.5)
+
+    # ── Skills (two-column layout) ───────────────────────────────────────────
+    pdf.section_heading("Skills")
+
+    skill_list = list(skills.items())
+    bar_label_w = 30
+    pct_w = 10
+    bar_gap = 1        # gap between bar end and percentage
+    col_gap = 10       # gap between the two columns
+    row_h = 5.5
+
+    # Calculate bar width from available space
+    side_pad = 4
+    usable = _CW - 2 * side_pad
+    bar_w = (usable - 2 * (bar_label_w + bar_gap + pct_w) - col_gap) / 2
+    col_total = bar_label_w + bar_w + bar_gap + pct_w  # width of one column
+
+    # Split into two columns
+    mid = (len(skill_list) + 1) // 2
+    left_skills = skill_list[:mid]
+    right_skills = skill_list[mid:]
+
+    card_rows = max(len(left_skills), len(right_skills))
+    card_h = 5 + card_rows * row_h
+    card_y = pdf.get_y()
+    pdf._card_rect(_LM, card_y, _CW, card_h)
+
+    # Center both columns within the card
+    start_x = _LM + side_pad
+
+    for col_idx, col_skills in enumerate([left_skills, right_skills]):
+        col_x = start_x + col_idx * (col_total + col_gap)
+        y_cursor = card_y + 2.5
+
+        for skill, pct in col_skills:
+            # Skill name
+            pdf.set_xy(col_x, y_cursor)
+            pdf.set_font("Helvetica", "", 7.5)
+            pdf.set_text_color(*_DARK)
+            pdf.cell(bar_label_w, 3.5, _s(skill))
+
+            # Bar track
+            bx = col_x + bar_label_w
+            by = y_cursor + 0.3
+            bh = 2.8
+            pdf.set_fill_color(*_LIGHT_BG)
+            pdf.rect(bx, by, bar_w, bh, style="F",
+                     round_corners=True, corner_radius=1.4)
+
+            # Bar fill
+            fill_w = bar_w * pct / 100
+            if fill_w > 0:
+                pdf.set_fill_color(*_HEADING)
+                pdf.rect(bx, by, fill_w, bh, style="F",
+                         round_corners=True, corner_radius=1.4)
+
+            # Percentage
+            pdf.set_xy(bx + bar_w + bar_gap, y_cursor)
+            pdf.set_font("Helvetica", "B", 7)
+            pdf.set_text_color(*_GOLD_MID)
+            pdf.cell(pct_w, 3.5, f"{pct}%", align="R")
+
+            y_cursor += row_h
+
+    pdf.set_y(card_y + card_h + 1.5)
+
+    # ── Projects ─────────────────────────────────────────────────────────────
+    pdf.section_heading("Projects")
+
     for proj in projects:
-        # title (strip emoji prefix for cleaner PDF)
-        pdf.set_font("Helvetica", "B", 10)
-        pdf.set_text_color(*PortfolioPDF.DARK)
-        pdf.cell(0, 6, _sanitize(proj["title"]), new_x="LMARGIN", new_y="NEXT")
-
-        # description
-        pdf.set_font("Helvetica", "", 9)
-        pdf.set_text_color(*PortfolioPDF.MUTED)
-        pdf.multi_cell(0, 5, _sanitize(proj["description"]), new_x="LMARGIN", new_y="NEXT")
-
-        # tags row
-        pdf.ln(1)
-        for tag in proj["tags"]:
-            pdf._tag_badge(tag)
-        pdf.ln(3)
-
-        # link
+        desc = _s(proj.get("description", ""))
         link = proj.get("link", "").strip()
+
+        # Calculate card height
+        pdf.set_font("Helvetica", "", 7.5)
+        body_lines = 0
+        if desc:
+            body_lines = len(pdf.multi_cell(
+                _CW - 12, 3.3, desc, dry_run=True, output="LINES",
+            ))
+
+        card_h = 3  # top/bottom padding
+        card_h += 4.5  # title line
         if link:
-            pdf.set_font("Helvetica", "U", 8)
-            pdf.set_text_color(*PortfolioPDF.ACCENT)
-            pdf.cell(0, 5, link, link=link, new_x="LMARGIN", new_y="NEXT")
-        pdf.ln(3)
+            card_h += 3.5  # link line
+        if desc:
+            card_h += body_lines * 3.3 + 0.5
 
-    # ── Contact ─────────────────────────────────────────────────────────────
-    pdf._section_title("Contact")
-    for key, val in contact.items():
-        pdf._label_value(key.capitalize(), val)
+        card_y = pdf.get_y()
+        pdf._card_rect(_LM, card_y, _CW, card_h)
 
-    # ── Output ──────────────────────────────────────────────────────────────
+        # Gold left accent strip
+        pdf.set_fill_color(*_HEADING)
+        pdf.rect(_LM, card_y, 1, card_h, style="F",
+                 round_corners=True, corner_radius=0.5)
+
+        inner_x = _LM + 5
+        pdf.set_xy(inner_x, card_y + 1)
+
+        # Title
+        pdf.set_font("Helvetica", "B", 8.5)
+        pdf.set_text_color(*_DARK)
+        pdf.cell(0, 4.5, _s(proj["title"]), new_x="LMARGIN", new_y="NEXT")
+
+        # Link – inside the card, under title
+        if link:
+            pdf.set_x(inner_x)
+            pdf.set_font("Helvetica", "U", 7)
+            pdf.set_text_color(*_GOLD_MID)
+            pdf.cell(0, 3.5, link, link=link, new_x="LMARGIN", new_y="NEXT")
+
+        # Description
+        if desc:
+            pdf.set_x(inner_x)
+            pdf.set_font("Helvetica", "", 7.5)
+            pdf.set_text_color(*_BODY)
+            pdf.multi_cell(_CW - 12, 3.3, desc, new_x="LMARGIN", new_y="NEXT")
+
+        pdf.set_y(card_y + card_h + 1.5)
+
+    # ── Output ───────────────────────────────────────────────────────────────
     buf = io.BytesIO()
     pdf.output(buf)
     return buf.getvalue()
-
