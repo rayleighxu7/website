@@ -1,9 +1,10 @@
-import csv
-import io
+import base64
 import json
 
 import streamlit as st
 from pathlib import Path
+
+# from export_pdf import build_portfolio_pdf
 
 # ── Load external content ────────────────────────────────────────────────────
 import re
@@ -29,6 +30,10 @@ PROJECTS = _content["projects"]
 EXPERIENCE = _content["experience"]
 CONTACT = _content["contact"]
 ABOUT = ABOUT_PATH.read_text(encoding="utf-8").strip()
+
+_gh_dark_b64 = base64.b64encode((Path(__file__).parent / "images/github-logo-dark.png").read_bytes()).decode()
+_gh_light_b64 = base64.b64encode((Path(__file__).parent / "images/github-logo-light.png").read_bytes()).decode()
+_li_b64 = base64.b64encode((Path(__file__).parent / "images/linkedin-logo.png").read_bytes()).decode()
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -391,7 +396,6 @@ st.markdown(
         text-decoration: none !important;
         color: inherit !important;
         display: block;
-        height: 100%;
     }}
     .card-link *, .card-link:hover * {{
         text-decoration: none !important;
@@ -402,14 +406,38 @@ st.markdown(
         border-radius: 16px;
         padding: 1.8rem;
         border: 1px solid {T['border']};
-        transition: all 0.3s ease;
-        height: 100%;
+        transition: all 0.4s ease;
+        height: 220px;
+        overflow: hidden;
         cursor: pointer;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }}
+    .card-description {{
+        flex: 1;
+        overflow: hidden;
+    }}
+    .card-tags {{
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 0.8rem 1.8rem 1.4rem 1.8rem;
+        background: {T['card']};
+        z-index: 1;
     }}
     .card:hover {{
         border-color: {T['hover_border']};
         transform: translateY(-2px);
         box-shadow: 0 8px 25px {T['hover_shadow']};
+        height: auto;
+        max-height: 500px;
+    }}
+    .card:hover .card-tags {{
+        position: relative;
+        padding: 0;
+        background: none;
     }}
     .card-title {{
         font-size: 1.15rem;
@@ -417,11 +445,18 @@ st.markdown(
         color: {T['text']};
         margin-bottom: 0.5rem;
     }}
-    .card-description {{
+    .card-description-text {{
         font-size: 0.9rem;
         color: {T['muted']};
         line-height: 1.6;
         margin-bottom: 1rem;
+    }}
+    .card-icon {{
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+        margin-bottom: 0.8rem;
+        border-radius: 6px;
     }}
 
     /* ── Tags ────────────────────────────────── */
@@ -484,6 +519,17 @@ st.markdown(
         height: 10px;
         border-radius: 50%;
         background: {T['accent']};
+    }}
+    .timeline-header {{
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }}
+    .timeline-icon {{
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+        border-radius: 6px;
     }}
     .timeline-date {{
         font-size: 0.8rem;
@@ -594,67 +640,6 @@ st.markdown(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  CSV EXPORT
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-def build_portfolio_csv() -> str:
-    """Collect all portfolio data into a single, well-structured CSV string."""
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-
-    # ── Profile ─────────────────────────────────────────────────────────────
-    writer.writerow(["Section", "Field", "Value"])
-    writer.writerow([])  # blank spacer row
-    writer.writerow(["Profile", "Name", PROFILE["name"]])
-    writer.writerow(["Profile", "Title", PROFILE["title"]])
-    writer.writerow(["Profile", "Tagline", PROFILE["tagline"]])
-    writer.writerow(["Profile", "Status", PROFILE["status"]])
-
-    # ── Metrics ─────────────────────────────────────────────────────────────
-    writer.writerow([])
-    for m in METRICS:
-        writer.writerow(["Metrics", m["label"], m["value"]])
-
-    # ── About ───────────────────────────────────────────────────────────────
-    writer.writerow([])
-    writer.writerow(["About", "Bio", ABOUT.replace("\n", " ")])
-
-    # ── Skills ──────────────────────────────────────────────────────────────
-    writer.writerow([])
-    for skill, pct in SKILLS.items():
-        writer.writerow(["Skills", skill, f"{pct}%"])
-
-    # ── Projects ────────────────────────────────────────────────────────────
-    writer.writerow([])
-    for proj in PROJECTS:
-        writer.writerow([
-            "Projects",
-            proj["title"],
-            proj["description"],
-            "; ".join(proj["tags"]),
-            proj.get("link", ""),
-        ])
-
-    # ── Experience ──────────────────────────────────────────────────────────
-    writer.writerow([])
-    for exp in EXPERIENCE:
-        writer.writerow([
-            "Experience",
-            exp["date"],
-            exp["title"],
-            exp["description"],
-        ])
-
-    # ── Contact ─────────────────────────────────────────────────────────────
-    writer.writerow([])
-    for key, val in CONTACT.items():
-        writer.writerow(["Contact", key.capitalize(), val])
-
-    return buf.getvalue()
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
 #  HEADER NAVIGATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -669,7 +654,7 @@ def _nav_click(item: str):
 
 
 # Build nav links HTML-style with columns  (+ theme toggle + CSV download)
-nav_cols = st.columns([3] + [1] * len(NAV_ITEMS) + [0.5, 1], gap="small")
+nav_cols = st.columns([4] + [0.8] * len(NAV_ITEMS) + [0.4], gap="small")
 
 with nav_cols[0]:
     st.markdown(
@@ -690,22 +675,30 @@ for i, item in enumerate(NAV_ITEMS, start=1):
             use_container_width=True,
         )
 
-with nav_cols[-2]:
-    theme_icon = "☀️" if is_dark else "🌙"
+# with nav_cols[-2]:
+#     pdf_data = build_portfolio_pdf(
+#         profile=PROFILE,
+#         metrics=METRICS,
+#         about=ABOUT,
+#         skills=SKILLS,
+#         projects=PROJECTS,
+#         experience=EXPERIENCE,
+#         contact=CONTACT,
+#     )
+#     st.download_button(
+#         label="📥 PDF",
+#         data=pdf_data,
+#         file_name="portfolio.pdf",
+#         mime="application/pdf",
+#         use_container_width=True,
+#     )
+
+with nav_cols[-1]:
+    theme_icon = "☀︎" if is_dark else "☽︎"
     st.button(
         theme_icon,
         key="theme_toggle",
         on_click=_toggle_theme,
-        use_container_width=True,
-    )
-
-with nav_cols[-1]:
-    csv_data = build_portfolio_csv()
-    st.download_button(
-        label="📥 CSV",
-        data=csv_data,
-        file_name="portfolio.csv",
-        mime="text/csv",
         use_container_width=True,
     )
 
@@ -789,7 +782,7 @@ def render_projects():
 
     st.markdown(
         '<div class="section-header">Projects</div>'
-        '<div class="section-subheader">A selection of things I\'ve built</div>',
+        '<div class="section-subheader">A selection of things I have worked on</div>',
         unsafe_allow_html=True,
     )
 
@@ -806,8 +799,10 @@ def render_projects():
                 card_inner = f"""
                             <div class="card">
                                 <div class="card-title">{proj['title']}</div>
-                                <div class="card-description">{proj['description']}</div>
-                                <div>{tags_html}</div>
+                                <div class="card-description">
+                                    <div class="card-description-text">{proj['description']}</div>
+                                </div>
+                                <div class="card-tags">{tags_html}</div>
                             </div>"""
                 if link:
                     card_html = f'<a href="{link}" target="_blank" class="card-link">{card_inner}</a>'
@@ -852,8 +847,8 @@ def render_contact():
     items = [
         ("📧", "Email", CONTACT["email"]),
         ("📍", "Location", CONTACT["location"]),
-        ("🐙", "GitHub", CONTACT["github"]),
-        ("💼", "LinkedIn", CONTACT["linkedin"]),
+        (f'<img src="data:image/png;base64,{_gh_dark_b64 if is_dark else _gh_light_b64}" style="width:2rem;height:2rem;">', "GitHub", CONTACT["github"]),
+        (f'<img src="data:image/png;base64,{_li_b64}" style="width:2rem;height:2rem;">', "LinkedIn", CONTACT["linkedin"]),
     ]
     for col, (icon, label, value) in zip([c1, c2, c3, c4], items):
         with col:

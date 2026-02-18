@@ -30,40 +30,52 @@
 
   "projects": [
     {
-      "title": "US Political Data Merge",
+      "title": "🌐︎ Portfolio Website",
+      "description": "This very site you are currently on is a modern, content-driven portfolio built with Streamlit and Python, featuring dynamic theming and all content managed via a single JSON config file. Deployed on AWS.",
+      "tags": ["Python", "Streamlit", "AWS", "GitHub"],
+      "icon": "images/2842-stressedpsyduck.png",
+      "link": "https://github.com/rayleighxu7/website"
+    },
+    {
+      "title": "🗳︎ US Political Data Merge",
       "description": "Python-based ETL project for merging and deduplicating over 1 million records from multiple Excel/CSV sources using deterministic and fuzzy matching, with company name standardization and US political voter data integration.",
       "tags": ["Python", "Splink", "Excel"],
+      "icon": "",
       "link": "https://github.com/rayleighxu7/us-political-data-merge-robv"
     },
     {
-      "title": "Vanguard - Core Metric Dashboard",
-      "description": "A real-time analytics dashboard powered by Fivetran, BigQuery, and Hex.Tech, refreshing hourly to track key business metrics — including GMV, Revenue, and Customer growth — with both cumulative and time-series views.",
+      "title": "📊︎ Vanguard - Core Metric Dashboard",
+      "description": "A real-time analytics dashboard powered by Fivetran, BigQuery, and Hex.Tech, refreshing hourly to track key business metrics - including GMV, Revenue, and Customer growth - with both cumulative and time-series views.",
       "tags": ["Python", "SQL/BigQuery", "Fivetran", "Hex.Tech"],
+      "icon": "",
       "link": ""
-    },
-    {
-      "title": "Portfolio Website",
-      "description": "This very site you are currently on is a modern, content-driven portfolio built with Streamlit and Python, featuring dynamic theming and all content managed via a single JSON config file. Deployed on AWS.",
-      "tags": ["Python", "Streamlit", "AWS", "GitHub"],
-      "link": "https://github.com/rayleighxu7/website"
     }
   ],
 
   "experience": [
     {
+      "date": "November 2025 - Present",
+      "title": "Data Consultant @ freelanxur",
+      "description": "Started my own freelancing business as a data engineer & consultant.",
+      "icon": ""
+    },
+    {
       "date": "Aug 2023 - Present",
       "title": "Data Engineer @ Caruso",
-      "description": ""
+      "description": "",
+      "icon": ""
     },
     {
       "date": "Nov 2021 - Aug 2023",
       "title": "Data Intelligence Analyst @ Spark New Zealand",
-      "description": ""
+      "description": "",
+      "icon": ""
     },
     {
       "date": "Jun 2021 - Nov 2021",
       "title": "Data Analyst @ KPMG New Zealand",
-      "description": ""
+      "description": "",
+      "icon": ""
     }
   ],
 
