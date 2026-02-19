@@ -20,6 +20,10 @@ WORKDIR /app
 # Copy the entire virtualenv + source from builder
 COPY --from=builder /app /app
 
+# Inject Open Graph meta tags into Streamlit's index.html for link previews
+RUN STHTML=$(python -c "import streamlit, pathlib; print(pathlib.Path(streamlit.__file__).parent / 'static' / 'index.html')") && \
+    sed -i 's|</head>|<meta property="og:title" content="freelanxur" />\n<meta property="og:description" content="Data Engineer \&amp; Consultant" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="https://freelanxur.com" />\n<meta name="twitter:card" content="summary" />\n<meta name="twitter:title" content="freelanxur" />\n<meta name="twitter:description" content="Data Engineer \&amp; Consultant" />\n</head>|' "$STHTML"
+
 # Streamlit config
 ENV STREAMLIT_SERVER_PORT=8501
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
