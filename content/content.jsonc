@@ -1,7 +1,8 @@
 {
   "profile": {
-    "name": "Rayleigh Xu",
-    "title": "@freelanxur",
+    "first_name": "Rayleigh",
+    "last_name": "Xu",
+    "title": "freelanxur",
     "tagline": "Data engineer by trade, freelancer by choice",
     "status": "🟢 Available for freelancing projects",
     // "status": "🔴 Currently unavailable",
@@ -21,9 +22,9 @@
   "skills": {
     "Python": 90,
     "SQL": 90,
-    "Excel": 90,
-    "Git": 85,
+    "Excel": 80,
     "AI": 80,
+    "Git": 80,
     "CI/CD + Cloud": 70,
     "and more...": 50
   },

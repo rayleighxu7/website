@@ -140,7 +140,7 @@ def build_cv_pdf(
     pdf = CVPDF(orientation="P", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=False)  # we control layout manually
     pdf.set_margins(_LM, 10, _RM)
-    pdf._name = _s(profile["name"])
+    pdf._name = _s(f"{profile['first_name']} {profile['last_name']}")
     pdf._title = _s(profile["title"])
     pdf.add_page()
 
@@ -157,7 +157,7 @@ def build_cv_pdf(
     pdf.set_xy(_LM, 6)
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(*_HEADING)
-    pdf.cell(0, 8, _s(profile["name"]), align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, _s(f"{profile['first_name']} {profile['last_name']}"), align="C", new_x="LMARGIN", new_y="NEXT")
 
     # Contact line – centered with hyperlinks
     pdf.set_font("Helvetica", "", 7.5)
