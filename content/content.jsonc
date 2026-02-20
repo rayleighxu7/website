@@ -16,7 +16,7 @@
     { "value": "5+",   "label": "Years Experience" },
     { "value": "15+",  "label": "Projects Completed" },
     { "value": "100M+",  "label": "Rows of Data Processed"},
-    { "value": "10+", "label": "Pipelines Built" }
+    { "value": "10+", "label": "Pipelines & Applications Built" }
   ],
 
   "skills": {
@@ -64,7 +64,7 @@
       ]
     },
     {
-      "date": "Dec 2024 - Present",
+      "date": "Aug 2023 - Present",
       "title": "Data Engineer @ Caruso Software Limited",
       "description": "",
       "icon": "",
@@ -74,15 +74,7 @@
         "Developed internal tooling and packages to streamline client implementations, ongoing services, and support workflows.",
         "Built complex applications to address product gaps, including AU/NZ tax filing automation, bulk payment converters, and scheduled reporting systems.",
         "All tooling and applications maintained and deployed through Terraform in AWS infrastructure.",
-        "Collaborated with software engineers to design an optimized SQL data model supporting efficient GraphQL queries."
-      ]
-    },
-    {
-      "date": "Aug 2023 - Dec 2024",
-      "title": "Data Specialist @ Caruso Software Limited",
-      "description": "",
-      "icon": "",
-      "cv_bullets": [
+        "Collaborated with software engineers to design an optimized SQL data model supporting efficient GraphQL queries.",
         "Responsible for transforming and migrating client legacy data.",
         "Assisted in managing and servicing clients with CRM and Unit Registry data updates post go-live.",
         "Developed custom scripts to assist clients in reporting and analysis."
