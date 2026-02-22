@@ -1,6 +1,8 @@
 # freelanxur
 
-A modern, content-driven portfolio website built with **Streamlit** and **Python**, deployed on **AWS ECS Fargate** via GitHub Actions CI/CD.
+A modern, content-driven portfolio website built with **Streamlit** and **Python**, deployed on **[Railway](https://railway.app)**.
+
+(previously deployed on AWS ECS however migrated off due to saving costs)
 
 🔗 **Live**: [freelanxur.com](https://freelanxur.com)
 
@@ -22,8 +24,7 @@ A modern, content-driven portfolio website built with **Streamlit** and **Python
 | PDF Generation | [fpdf2](https://py-pdf.github.io/fpdf2/)                         |
 | Containerisation | [Docker](https://www.docker.com/) (multi-stage, `python:3.12-slim`) |
 | Package Manager | [uv](https://github.com/astral-sh/uv)                           |
-| CI/CD          | [GitHub Actions](https://github.com/features/actions)             |
-| Cloud          | AWS ECS Fargate, ECR, ALB, ACM, Route 53                         |
+| Cloud          | [Railway](https://railway.app) (primary), AWS ECS Fargate (fallback) |
 
 ## Project Structure
 
@@ -39,11 +40,12 @@ website/
 │   └── config.toml         # Streamlit server configuration
 ├── Dockerfile              # Multi-stage Docker build
 ├── .dockerignore
+├── railway.toml            # Railway deployment config
 ├── infra/
-│   └── task-definition.json  # ECS Fargate task definition
+│   └── task-definition.json  # ECS Fargate task definition (fallback)
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml      # CI/CD pipeline
+│       └── deploy.yml      # ECS deploy pipeline (manual trigger only)
 ├── pyproject.toml          # Python project & dependencies
 └── uv.lock                 # Locked dependency versions
 ```
@@ -100,24 +102,23 @@ The **About Me** section is written in Markdown in `content/about_me.md`.
 
 ## Deployment
 
-The project uses **GitHub Actions** to automatically build, push, and deploy on every push to `main`.
+### Railway (primary)
 
-### Pipeline Overview
+The site deploys automatically to **Railway** on every push to `main`. Railway builds the Docker image from the `Dockerfile` and runs it.
 
-1. **Checkout** — clones the repository
-2. **AWS Credentials** — authenticates via OIDC (`AWS_ROLE_ARN` secret)
-3. **ECR Login** — authenticates with Amazon ECR
-4. **Build & Push** — builds the Docker image and pushes to ECR (tagged with commit SHA + `latest`)
-5. **Render Task Definition** — injects the new image URI into `infra/task-definition.json`
-6. **Deploy to ECS** — updates the ECS Fargate service with the new task definition
+- Dashboard: [railway.app](https://railway.app)
+- Config: `railway.toml` (health check, restart policy)
+- Custom domain + SSL handled by Railway
 
-### Required GitHub Secret
+### AWS ECS Fargate (fallback)
 
-| Secret         | Description                                         |
-| -------------- | --------------------------------------------------- |
-| `AWS_ROLE_ARN` | ARN of the IAM role for GitHub Actions OIDC auth    |
+The ECS pipeline is kept dormant as a fallback. The GitHub Actions workflow (`deploy.yml`) is set to **manual trigger only** (`workflow_dispatch`).
 
-### AWS Infrastructure
+To activate the fallback:
+
+1. Go to **Actions > Deploy to AWS ECS (fallback)** in GitHub and click **Run workflow**
+2. Scale the ECS service back to 1: `aws ecs update-service --cluster freelanxur-cluster --service freelanxur-website-service --desired-count 1`
+3. Update Route 53 DNS to point back to the ALB
 
 | Resource            | Details                                              |
 | ------------------- | ---------------------------------------------------- |
@@ -125,10 +126,12 @@ The project uses **GitHub Actions** to automatically build, push, and deploy on 
 | ECS Cluster         | `freelanxur-cluster`                                 |
 | ECS Service         | `freelanxur-website-service`                         |
 | Task Definition     | Fargate, 256 CPU / 512 MB                            |
-| Load Balancer       | Application Load Balancer with HTTPS (ACM cert)      |
 | DNS                 | Route 53 hosted zone for `freelanxur.com`             |
-| Logs                | CloudWatch `/ecs/freelanxur-website`                  |
 | Region              | `ap-southeast-2` (Sydney)                             |
+
+| Secret         | Description                                         |
+| -------------- | --------------------------------------------------- |
+| `AWS_ROLE_ARN` | ARN of the IAM role for GitHub Actions OIDC auth    |
 
 ## License
 
