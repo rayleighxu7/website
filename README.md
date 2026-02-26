@@ -113,9 +113,8 @@ docker run -p 8000:8000 freelanxur
 
 **Railway:**
 
-Push to the connected branch. Railway detects `railway.toml`, builds from `Dockerfile`, and deploys automatically. The health check pings `GET /api/profile`.
+Push to the connected branch. Railway detects `railway.toml`, builds from `Dockerfile`, and deploys automatically. The health check pings `GET /api/health`.
 
 **Environment variables:**
 
 Configuration is managed via pydantic-settings. Create a `.env` file at the project root if you need to override defaults (see `app/config.py` for available settings).
->>>>>>> 4a00b062ed474a618b7794505615fadd1f89e6c3
