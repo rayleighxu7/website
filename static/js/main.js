@@ -65,23 +65,122 @@
 
         sessionStorage.setItem('loaderShown', '1');
 
-        // Logo fades in (0-200ms via CSS)
-        // Line sweeps (200-450ms via CSS)
-        // Split reveal (500-850ms)
-        setTimeout(function () {
-            loader.classList.add('split');
-            var loaderContent = loader.querySelector('.loader-content');
-            if (loaderContent) {
-                loaderContent.style.opacity = '0';
-                loaderContent.style.transition = 'opacity 0.15s ease';
-            }
-        }, 500);
+        // Hide navbar off-screen so it can slide in later
+        var navbar = document.getElementById('navbar');
+        if (navbar) {
+            navbar.style.transform = 'translateY(-100%)';
+        }
 
+        // Measure the natural text width so the transition has an exact target
+        var loaderText = loader.querySelector('.loader-text');
+        var textWidth = 0;
+        if (loaderText) {
+            loaderText.style.width = 'auto';
+            loaderText.style.position = 'absolute';
+            loaderText.style.visibility = 'hidden';
+            textWidth = Math.ceil(loaderText.scrollWidth) + 8;
+            loaderText.style.width = '0';
+            loaderText.style.position = '';
+            loaderText.style.visibility = '';
+        }
+
+        var loaderBrand = loader.querySelector('.loader-brand');
+
+        // Logo fades in (0-1000ms via CSS)
+        // Text expands via transition (600-1700ms)
+        // Dwell (1700-1850ms)
+        // Panels split, brand stays (1850ms)
+        // Brand morphs to hero position (2650ms)
+        // Handoff to hero title (3050ms)
         setTimeout(function () {
-            loader.classList.add('hidden');
-            loader.remove();
+            if (loaderText) {
+                loaderText.style.width = textWidth + 'px';
+            }
+            if (loaderBrand) {
+                loaderBrand.style.gap = '12px';
+            }
+        }, 600);
+
+        // Remove overflow clip after text transition finishes
+        setTimeout(function () {
+            if (loaderText) {
+                loaderText.style.overflow = 'visible';
+            }
+        }, 1750);
+
+        // Fade out loader, animate brand into hero position
+        setTimeout(function () {
+            // Snapshot brand position
+            var brandRect = loaderBrand.getBoundingClientRect();
+
+            // Lift brand out of loader so it stays visible during fade
+            loaderBrand.style.position = 'fixed';
+            loaderBrand.style.left = brandRect.left + 'px';
+            loaderBrand.style.top = brandRect.top + 'px';
+            loaderBrand.style.zIndex = '100000';
+            loaderBrand.style.margin = '0';
+            document.body.appendChild(loaderBrand);
+
+            // Render hero content behind the loader
             callback();
-        }, 850);
+
+            // Fade out the loader background
+            loader.classList.add('fade-out');
+
+            // Double-rAF: wait for hero to render + paint before measuring
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    var slot = document.querySelector('.hero-title-slot');
+                    if (!slot) return;
+
+                    // Match slot to .hero-title box model for accurate measurement
+                    slot.style.height = brandRect.height + 'px';
+                    slot.style.marginTop = '8px';
+                    var slotRect = slot.getBoundingClientRect();
+
+                    // Compute movement via transform (GPU-composited)
+                    var dx = (slotRect.left + slotRect.width / 2) - (brandRect.left + brandRect.width / 2);
+                    var dy = slotRect.top - brandRect.top;
+
+                    loaderBrand.style.transition = 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+                    loaderBrand.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+
+                    // After animation completes, reparent into DOM
+                    setTimeout(function () {
+                        // Swap styles + reparent while hidden (1 frame)
+                        slot.style.height = '';
+                        slot.style.marginTop = '';
+                        var lt = loaderBrand.querySelector('.loader-text');
+                        if (lt) { lt.removeAttribute('style'); lt.className = 'title-text'; }
+                        var ll = loaderBrand.querySelector('.loader-logo');
+                        if (ll) { ll.removeAttribute('style'); ll.className = 'logo-img'; }
+                        loaderBrand.removeAttribute('style');
+                        loaderBrand.style.visibility = 'hidden';
+                        loaderBrand.className = 'hero-title';
+                        slot.parentNode.replaceChild(loaderBrand, slot);
+
+                        // Reveal at final position next frame
+                        requestAnimationFrame(function () {
+                            loaderBrand.style.visibility = '';
+                        });
+
+                        loader.remove();
+                    }, 650);
+                });
+            });
+        }, 1850);
+
+        // Slide navbar in from top (after loader fades + brand starts moving)
+        setTimeout(function () {
+            if (navbar) {
+                navbar.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+                navbar.style.transform = '';
+                // Clean up inline styles after animation completes
+                setTimeout(function () {
+                    navbar.style.transition = '';
+                }, 550);
+            }
+        }, 2450);
     }
 
     /* ----------------------------------------------------------------------
@@ -340,10 +439,7 @@
         container.innerHTML =
             '<p class="hero-greeting">Hi, I\'m</p>' +
             '<h1 class="hero-name"><span class="typing-text">' + escapeHTML(fullName) + '</span></h1>' +
-            '<div class="hero-title">' +
-                '<img class="logo-img" src="/static/images/gold-logo-transparent-bg.PNG" alt="logo">' +
-                '<span class="title-text">' + escapeHTML(profile.title) + '</span>' +
-            '</div>' +
+            '<div class="hero-title-slot"></div>' +
             '<p class="hero-tagline">' + escapeHTML(profile.tagline) + '</p>' +
             '<div class="status-badge ' + statusClass + '">' +
                 '<span class="status-dot"></span>' +
@@ -363,10 +459,12 @@
             }
         });
 
-        // Apply staggered entrance to hero children
+        // Apply staggered entrance to hero children (skip title slot, brand fills it)
         var heroChildren = container.children;
         for (var i = 0; i < heroChildren.length; i++) {
-            heroChildren[i].classList.add('hero-stagger');
+            if (!heroChildren[i].classList.contains('hero-title-slot')) {
+                heroChildren[i].classList.add('hero-stagger');
+            }
         }
     }
 
