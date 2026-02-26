@@ -65,23 +65,23 @@
 
         sessionStorage.setItem('loaderShown', '1');
 
-        // Logo fades in (0-300ms via CSS)
-        // Line sweeps (300-700ms via CSS)
-        // Split reveal (800-1300ms)
+        // Logo fades in (0-200ms via CSS)
+        // Line sweeps (200-450ms via CSS)
+        // Split reveal (500-850ms)
         setTimeout(function () {
             loader.classList.add('split');
             var loaderContent = loader.querySelector('.loader-content');
             if (loaderContent) {
                 loaderContent.style.opacity = '0';
-                loaderContent.style.transition = 'opacity 0.2s ease';
+                loaderContent.style.transition = 'opacity 0.15s ease';
             }
-        }, 800);
+        }, 500);
 
         setTimeout(function () {
             loader.classList.add('hidden');
             loader.remove();
             callback();
-        }, 1300);
+        }, 850);
     }
 
     /* ----------------------------------------------------------------------
@@ -193,13 +193,24 @@
 
         if (!sections.length || !navLinks.length) return;
 
+        // Map section IDs to the nav link href that should be highlighted
+        var sectionToNav = {
+            hero: null,
+            metrics: null,
+            about: '#about',
+            projects: '#projects',
+            experience: '#experience',
+            skills: '#experience',
+            contact: '#contact'
+        };
+
         var observer = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
-                    var id = entry.target.id;
+                    var targetHref = sectionToNav[entry.target.id];
                     navLinks.forEach(function (link) {
                         var href = link.getAttribute('href');
-                        if (href === '#' + id) {
+                        if (targetHref && href === targetHref) {
                             link.classList.add('active');
                         } else {
                             link.classList.remove('active');
@@ -712,22 +723,13 @@
        12. INIT
        ---------------------------------------------------------------------- */
 
-    async function init() {
+    async function init(dataPromise) {
         // Theme and navbar can run immediately
         setupThemeToggle();
         setupNavbar();
 
         try {
-            var results = await Promise.all([
-                fetchJSON('/api/profile'),
-                fetchJSON('/api/metrics'),
-                fetchJSON('/api/about'),
-                fetchJSON('/api/skills'),
-                fetchJSON('/api/services'),
-                fetchJSON('/api/projects'),
-                fetchJSON('/api/experience'),
-                fetchJSON('/api/contact')
-            ]);
+            var results = await dataPromise;
 
             var profile    = results[0];
             var metrics    = results[1];
@@ -767,7 +769,20 @@
 
     // Theme must apply before loader (so loader has correct bg)
     applyTheme(getTheme());
+
+    // Start fetching data immediately (in parallel with loader animation)
+    var dataPromise = Promise.all([
+        fetchJSON('/api/profile'),
+        fetchJSON('/api/metrics'),
+        fetchJSON('/api/about'),
+        fetchJSON('/api/skills'),
+        fetchJSON('/api/services'),
+        fetchJSON('/api/projects'),
+        fetchJSON('/api/experience'),
+        fetchJSON('/api/contact')
+    ]);
+
     runPageLoader(function () {
-        init();
+        init(dataPromise);
     });
 })();

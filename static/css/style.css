@@ -172,6 +172,17 @@ a {
     margin-top: 0;
 }
 
+.section-subheader {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 48px;
+    margin-bottom: 12px;
+}
+
+#skills {
+    padding-top: 0;
+}
 
 
 /* --------------------------------------------------------------------------
@@ -1543,7 +1554,7 @@ a {
     align-items: center;
     justify-content: center;
     pointer-events: all;
-    animation: loaderSafetyHide 0s 3s forwards;
+    animation: loaderSafetyHide 0s 2s forwards;
 }
 
 @keyframes loaderSafetyHide {
@@ -1587,7 +1598,7 @@ a {
     align-items: center;
     gap: 16px;
     opacity: 0;
-    animation: loaderFadeIn 0.3s ease forwards;
+    animation: loaderFadeIn 0.2s ease forwards;
 }
 
 .loader-brand {
@@ -1613,7 +1624,7 @@ a {
     width: 0;
     height: 2px;
     background: linear-gradient(90deg, var(--accent-dark), var(--accent), var(--accent-light));
-    animation: loaderLine 0.4s ease 0.3s forwards;
+    animation: loaderLine 0.25s ease 0.2s forwards;
 }
 
 @keyframes loaderFadeIn {
