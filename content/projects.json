@@ -3,7 +3,7 @@
     "title": "Website",
     "description": "This very site you are currently on is a modern, content-driven portfolio built with FastAPI and Python, featuring dynamic theming and content managed via JSON and Markdown config files. Containerised with Docker, deployed on Railway with an ECS Fargate fallback on AWS.",
     "tags": ["Python", "FastAPI", "Docker", "AWS", "GitHub"],
-    "link": "https://github.com/rayleighxu7/website",
+    "link": "https://github.com/rayleighxu7/website-fastapi",
     "nda": false
   },
   {
