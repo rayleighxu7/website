@@ -14,6 +14,7 @@ from app.api.services import router as services_router
 from app.api.contact import router as contact_router
 from app.api.about import router as about_router
 from app.api.cv import router as cv_router
+from app.api.health import router as health_router
 
 app = FastAPI(title="freelanxur", debug=settings.DEBUG)
 
@@ -31,6 +32,7 @@ app.include_router(services_router)
 app.include_router(contact_router)
 app.include_router(about_router)
 app.include_router(cv_router)
+app.include_router(health_router)
 
 # Page router (must be last — catches /)
 app.include_router(pages_router)
