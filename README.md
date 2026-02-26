@@ -22,7 +22,7 @@ Open http://localhost:8000.
 | CV generation | fpdf2 |
 | Config | pydantic-settings |
 | Package manager | uv |
-| Deployment | Docker, Railway |
+| Deployment | Docker, Railway (primary), AWS ECS Fargate (fallback) |
 
 ## Project Structure
 
@@ -41,7 +41,8 @@ website-fastapi/
 │   │   ├── services.py            # GET /api/services
 │   │   ├── contact.py             # GET /api/contact
 │   │   ├── about.py               # GET /api/about
-│   │   └── cv.py                  # GET /api/download-cv
+│   │   ├── cv.py                  # GET /api/download-cv
+│   │   └── health.py              # GET /api/health
 │   └── pages/
 │       └── router.py              # GET / — serves HTML shell
 ├── content/
@@ -60,7 +61,13 @@ website-fastapi/
 │   ├── css/style.css
 │   ├── js/main.js
 │   └── images/
+├── infra/
+│   └── task-definition.json       # ECS Fargate task definition
+├── .github/
+│   └── workflows/
+│       └── deploy.yml             # ECS fallback deployment (manual)
 ├── Dockerfile
+├── .dockerignore
 ├── railway.toml
 └── pyproject.toml
 ```
@@ -97,24 +104,37 @@ The frontend fetches all data from these endpoints on page load.
 | `GET /api/contact` | `{email, github, linkedin}` |
 | `GET /api/about` | `{about_me, about_logo}` (HTML strings) |
 | `GET /api/download-cv` | PDF file (generated via fpdf2) |
+| `GET /api/health` | `{status: "ok"}` |
 
 Interactive docs are available at http://localhost:8000/docs when running locally.
 
 ## Deployment
 
-The app is deployed on Railway using the included `Dockerfile` and `railway.toml`.
-
-**Docker (local or self-hosted):**
+### Docker (local)
 
 ```bash
 docker build -t freelanxur .
 docker run -p 8000:8000 freelanxur
 ```
 
-**Railway:**
+### Railway (primary)
 
 Push to the connected branch. Railway detects `railway.toml`, builds from `Dockerfile`, and deploys automatically. The health check pings `GET /api/health`.
 
-**Environment variables:**
+### AWS ECS Fargate (fallback)
+
+A manual GitHub Actions workflow is available as a fallback deployment to AWS ECS Fargate.
+
+| Resource | Value |
+|---|---|
+| Region | `ap-southeast-2` |
+| Cluster | `freelanxur-cluster` |
+| Service | `freelanxur-website-service` |
+| ECR repo | `freelanxur-website` |
+| Task definition | `infra/task-definition.json` |
+
+Trigger manually via **Actions > Deploy to AWS ECS (fallback) > Run workflow** in GitHub. The workflow builds the Docker image, pushes to ECR, and deploys to ECS. AWS credentials are configured via OIDC (`secrets.AWS_ROLE_ARN`).
+
+### Environment variables
 
 Configuration is managed via pydantic-settings. Create a `.env` file at the project root if you need to override defaults (see `app/config.py` for available settings).
