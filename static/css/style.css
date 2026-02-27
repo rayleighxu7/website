@@ -112,6 +112,7 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 body::after {
@@ -405,6 +406,7 @@ a {
     justify-content: center;
     background: linear-gradient(135deg, var(--hero-gradient-start), var(--hero-gradient-mid), var(--hero-gradient-end));
     padding-top: 70px;
+    overflow: hidden;
 }
 
 .hero-section .section-content {

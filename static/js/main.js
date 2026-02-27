@@ -146,26 +146,52 @@
                     loaderBrand.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
 
                     // After animation completes, reparent into DOM
-                    setTimeout(function () {
-                        // Swap styles + reparent while hidden (1 frame)
+                    var handoffDone = false;
+                    function doHandoff() {
+                        if (handoffDone) return;
+                        handoffDone = true;
+
+                        // 1. Hide and kill transition BEFORE clearing position/transform
+                        loaderBrand.style.visibility = 'hidden';
+                        loaderBrand.style.transition = 'none';
+
+                        // 2. Clear slot sizing
                         slot.style.height = '';
                         slot.style.marginTop = '';
+
+                        // 3. Swap child classes
                         var lt = loaderBrand.querySelector('.loader-text');
                         if (lt) { lt.removeAttribute('style'); lt.className = 'title-text'; }
                         var ll = loaderBrand.querySelector('.loader-logo');
                         if (ll) { ll.removeAttribute('style'); ll.className = 'logo-img'; }
-                        loaderBrand.removeAttribute('style');
-                        loaderBrand.style.visibility = 'hidden';
+
+                        // 4. Clear brand positioning (visibility stays hidden)
+                        loaderBrand.style.position = '';
+                        loaderBrand.style.left = '';
+                        loaderBrand.style.top = '';
+                        loaderBrand.style.zIndex = '';
+                        loaderBrand.style.margin = '';
+                        loaderBrand.style.transform = '';
                         loaderBrand.className = 'hero-title';
                         slot.parentNode.replaceChild(loaderBrand, slot);
 
-                        // Reveal at final position next frame
+                        // 5. Reveal at final position next frame
                         requestAnimationFrame(function () {
+                            loaderBrand.style.transition = '';
                             loaderBrand.style.visibility = '';
                         });
 
                         loader.remove();
-                    }, 650);
+                    }
+
+                    loaderBrand.addEventListener('transitionend', function handler(e) {
+                        if (e.propertyName !== 'transform') return;
+                        loaderBrand.removeEventListener('transitionend', handler);
+                        doHandoff();
+                    });
+
+                    // Safety fallback if transitionend doesn't fire
+                    setTimeout(doHandoff, 800);
                 });
             });
         }, 1850);
