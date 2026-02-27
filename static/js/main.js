@@ -462,10 +462,20 @@
         var statusClass = profile.status_available ? 'available' : 'unavailable';
         var fullName = profile.first_name + ' ' + profile.last_name;
 
+        // If the loader brand still exists, render a slot for it to morph into;
+        // otherwise (loader skipped / hard refresh) render the title directly.
+        var loaderBrand = document.querySelector('.loader-brand');
+        var titleHtml = loaderBrand
+            ? '<div class="hero-title-slot"></div>'
+            : '<div class="hero-title">' +
+                  '<img src="/static/images/gold-logo-transparent-bg.PNG" alt="freelanxur" class="logo-img" height="60">' +
+                  '<span class="title-text">freelanxur</span>' +
+              '</div>';
+
         container.innerHTML =
             '<p class="hero-greeting">Hi, I\'m</p>' +
             '<h1 class="hero-name"><span class="typing-text">' + escapeHTML(fullName) + '</span></h1>' +
-            '<div class="hero-title-slot"></div>' +
+            titleHtml +
             '<p class="hero-tagline">' + escapeHTML(profile.tagline) + '</p>' +
             '<div class="status-badge ' + statusClass + '">' +
                 '<span class="status-dot"></span>' +
