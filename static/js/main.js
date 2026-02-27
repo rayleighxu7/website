@@ -450,9 +450,12 @@
         requestAnimationFrame(function () {
             var typingEl = container.querySelector('.typing-text');
             if (typingEl) {
+                // Measure the natural text width before constraining
                 typingEl.style.display = 'inline-block';
-                typingEl.style.overflow = 'hidden';
                 typingEl.style.whiteSpace = 'nowrap';
+                var naturalWidth = typingEl.scrollWidth;
+                typingEl.style.setProperty('--typing-width', naturalWidth + 'px');
+                typingEl.style.overflow = 'hidden';
                 typingEl.style.borderRight = '3px solid var(--accent)';
                 typingEl.style.width = '0';
                 typingEl.style.animation = 'typing 1.8s steps(40, end) forwards, blink 0.75s step-end infinite';
